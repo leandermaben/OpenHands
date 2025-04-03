@@ -25,6 +25,7 @@ from openhands.llm.llm import LLM
 from openhands.llm.metrics import Metrics
 from openhands.utils.chunk_localizer import Chunk, get_top_k_chunk_matches
 
+# Not USED
 SYS_MSG = """Your job is to produce a new version of the file based on the old version and the
 provided draft of the new version. The provided draft may be incomplete (it may skip lines) and/or incorrectly indented. You should try to apply the changes present in the draft to the old version, and output a new version of the file.
 NOTE:
@@ -34,7 +35,7 @@ NOTE:
 - If there's placeholder comments like `# no changes before` or `# no changes here`, we should replace these comments with the original code near the placeholder comments.
 """
 
-USER_MSG = """
+USER_MSG_old = """
 HERE IS THE OLD VERSION OF THE FILE:
 ```
 {old_contents}
@@ -51,9 +52,26 @@ IMPORTANT:
 - The output file should be COMPLETE and CORRECTLY INDENTED. Do not omit any lines, and do not change any lines that are not part of the changes.
 """.strip()
 
+USER_MSG = """
+        Code changes will be provided in the form of a draft. You will need to apply the draft to the original code.
+        The original code will be enclosed within `<original_code>` tags.
+        The draft will be enclosed within `<update_snippet>` tags.
+        You need to output the update code within `<updated_code>` tags.
+
+        Within the `<updated_code>` tag, include only the final code after updation. Do not include any explanations or other content within these tags.
+
+        <original_code>
+        {old_contents}
+        </original_code>
+
+        <update_snippet>
+        {draft_changes}
+        </update_snippet>
+"""
+
 
 def _extract_code(string):
-    pattern = r'```(?:\w*\n)?(.*?)```'
+    pattern = r'<updated_code>(.*?)</updated_code>'
     matches = re.findall(pattern, string, re.DOTALL)
     if not matches:
         return None
@@ -65,7 +83,7 @@ def get_new_file_contents(
 ) -> str | None:
     while num_retries > 0:
         messages = [
-            {'role': 'system', 'content': SYS_MSG},
+            #            {'role': 'system', 'content': SYS_MSG},
             {
                 'role': 'user',
                 'content': USER_MSG.format(
